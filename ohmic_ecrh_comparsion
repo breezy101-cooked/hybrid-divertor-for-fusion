@@ -1,0 +1,81 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+#simple physics function
+def ecrh_efficiency(n_e, T_e):
+    """Simple Ecrh efficiency : works better at lower temperatures"""
+    tau = (n_e/1e19)*(2.0/T_e)**2 #Opitcal depth
+    return 1 - np.exp(-tau)
+
+def ohmic_efficiency(T_e):
+    """Simple Ohmic efficiency : gets worse as temperatures increases"""
+    return 0.5 * (T_e ** (-1.5))#Spitzer resistivity
+
+#Create temperature range (o.5 to 10 keV)
+temperatures = np.linspace(0.5, 10, 50)
+
+# Fixed density for comparsion
+n_e = 1.5e19 # m^-3
+
+#Calculate efficiencies
+ecrh_eff = [ecrh_efficiency(n_e, T) for T in temperatures]
+ohmic_eff = [ohmic_efficiency(T) for T in temperatures]
+
+#Create the plot
+plt.figure(figsize=(10,6))
+plt.plot(temperatures, ecrh_eff, 'b-', linewidth=3, label='ECRH heating')
+plt.plot(temperatures, ohmic_eff, 'r-', linewidth=3, label='Ohmic heating')
+
+#add important markers
+plt.axvline(x=3.0, color='red', linestyle='--', alpha = 0.7,label = 'ohmic heating limit (~3kev)')
+plt.axhline(y=0.5, color='blue', linestyle='--', alpha=0.7, label ='50% Efficiency')
+
+#Formatting
+plt.xlabel('Electron temperature (keV)', fontsize=12)
+plt.ylabel('Heating efficiency', fontsize =12)
+plt.title('Efficiency vs Electron Temperature', fontsize=14)
+plt.legend(fontsize=12)
+plt.grid(True,alpha=0.3)
+plt.xlim(0.5,10)
+plt.ylim(0,1)
+
+# add text explanation
+plt.text(6,0.8, 'ECRH: Better at all temperatures\nespecially for edge heating',
+         bbox=dict(boxstyle="round,pad=0.3", facecolor='lightblue'))
+plt.text(6, 0.2, 'Ohmic Fails above ~3 keV\ndue to Spitzer resistivity',
+         bbox=dict(boxstyle="round,pad=0.3", facecolor='lightcoral'))
+
+plt.tight_layout()
+plt.show()
+
+#print key results
+print("=== SIMPLE ECRH VS OHMIC COMPARSION===")
+print(f"At T_e = 3keV, n_e = {n_e:.1e} m^-3:")
+print(f"ECRH Efficiency: {ecrh_efficiency(n_e, 3):.1%}")
+print(f"Ohmic Efficiency: {ohmic_efficiency(3):.1%}")
+
+print(f"\nAt T_e = 10keV (fusion temperatures:")
+print(f"ECRH Efficiency: {ecrh_efficiency(n_e, 10):.1%}")
+print(f"Ohmic Efficiency: {ohmic_efficiency(10):.1%}")
+
+def calculate_heating_flux(heating_power, efficiency):
+    """calculate how much heat reaches the divertor"""
+    return heating_power * (1 - efficiency)
+
+# Constants
+HEATING_POWER = 20 # MW
+ITER_LIMIT = 10 # MW/m^2 (what ITER's walls can handle)
+
+#Calculate heat fluxes
+heat_flux_ecrh = calculate_heating_flux(HEATING_POWER, ecrh_efficiency(n_e,3))
+heat_flux_ohmic = calculate_heating_flux(HEATING_POWER, ohmic_efficiency(3))
+
+print("\n=== HEAT FLUX ANALYSIS ===")
+print(f"With {HEATING_POWER} MW heating power:")
+print(f"ECRH Heat Flux: {heat_flux_ecrh:.1f} MW/m^2")
+print(f"Ohmic Heat Flux: {heat_flux_ohmic:.1f} MW/m^2")
+print(f"ITER Safety Limit: {ITER_LIMIT} MW/m^2")
+
+if heat_flux_ecrh > ITER_LIMIT:
+    print("PROBLEM: ECRH creates TOO MUCH heat flux!")
+    print("SOLUTION: We need my hybrid divertor design!")
